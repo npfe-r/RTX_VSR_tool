@@ -1,7 +1,6 @@
+PyQt6>=6.5
 nvidia-vfx==0.1.0.1
 torch==2.11.0+cu128
 torchvision==0.26.0+cu128
 opencv-python-headless==4.13.0.92
-streamlit==1.57.0
-numpy
-tqdm
+numpy>=1.24,<3
