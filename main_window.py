@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout,
                               QVBoxLayout, QSplitter, QMessageBox)
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QSettings
 from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtCore import QUrl
 
@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
         self._setup_menu()
         self._setup_ui()
         self._connect_signals()
+        self._load_settings()
 
     def _setup_menu(self):
         menubar = self.menuBar()
@@ -194,3 +195,44 @@ class MainWindow(QMainWindow):
             "支持超分辨率放大、降噪、去模糊\n\n"
             "技术栈: PyQt6 · PyTorch · NVIDIA VFX SDK 1.2.0"
         )
+
+    # ---------- Settings persistence ----------
+
+    def _save_settings(self):
+        s = QSettings()
+        params = self.param_panel.get_params()
+        for key in ("output_mode", "custom_w", "custom_h", "container_fmt",
+                     "fps_override", "quality_label", "codec_label",
+                     "crf", "preset"):
+            s.setValue(key, params[key])
+        s.setValue("output_dir", self.file_bar.get_output_path())
+        s.setValue("window_geometry", self.saveGeometry())
+        s.setValue("window_state", self.saveState())
+
+    def _load_settings(self):
+        s = QSettings()
+        params = {}
+        for key in ("output_mode", "custom_w", "custom_h", "container_fmt",
+                     "fps_override", "quality_label", "codec_label",
+                     "crf", "preset"):
+            val = s.value(key)
+            if val is not None:
+                # QSettings returns int for ints, str for strs automatically
+                params[key] = val
+        if params:
+            self.param_panel.set_params(params)
+
+        out_dir = s.value("output_dir", "")
+        if out_dir:
+            self.file_bar.set_output_path(out_dir)
+
+        geo = s.value("window_geometry")
+        if geo is not None:
+            self.restoreGeometry(geo)
+        state = s.value("window_state")
+        if state is not None:
+            self.restoreState(state)
+
+    def closeEvent(self, event):
+        self._save_settings()
+        super().closeEvent(event)

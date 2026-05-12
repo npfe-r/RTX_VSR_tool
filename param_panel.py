@@ -173,4 +173,25 @@ class ParamPanel(QWidget):
             "enc_codec": codec_map.get(self.codec_combo.currentText(), "libx264"),
             "crf": self.crf_slider.value(),
             "preset": self.preset_combo.currentText(),
+            "codec_label": self.codec_combo.currentText(),
         }
+
+    def set_params(self, params: dict):
+        if "output_mode" in params:
+            self.mode_combo.setCurrentText(params["output_mode"])
+        if "custom_w" in params:
+            self.width_spin.setValue(params["custom_w"])
+        if "custom_h" in params:
+            self.height_spin.setValue(params["custom_h"])
+        if "container_fmt" in params:
+            self.container_combo.setCurrentText(params["container_fmt"])
+        if "fps_override" in params:
+            self.fps_spin.setValue(params["fps_override"])
+        if "quality_label" in params:
+            self.quality_combo.setCurrentText(params["quality_label"])
+        if "codec_label" in params:
+            self.codec_combo.setCurrentText(params["codec_label"])
+        if "crf" in params:
+            self.crf_slider.setValue(params["crf"])
+        if "preset" in params:
+            self.preset_combo.setCurrentText(params["preset"])
