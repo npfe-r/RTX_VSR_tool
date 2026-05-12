@@ -6,19 +6,41 @@ QMainWindow, QWidget {
     font-size: 12px;
 }
 
+/* === Title Bar Button === */
+QPushButton#titleBarBtn {
+    background-color: transparent;
+    color: #D3D3D3;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    padding: 4px;
+}
+QPushButton#titleBarBtn:hover {
+    background-color: #555555;
+}
+QPushButton#titleBarBtn:pressed {
+    background-color: #4A4A4A;
+}
+QPushButton#titleBarBtn:last-child:hover {
+    background-color: #C04040;
+}
+QPushButton#titleBarBtn:last-child:pressed {
+    background-color: #A03030;
+}
+
 /* === GroupBox === */
 QGroupBox {
     background-color: #4A4A4A;
     border: 1px solid #555555;
-    border-radius: 4px;
+    border-radius: 8px;
     margin-top: 12px;
-    padding: 16px 8px 8px 8px;
+    padding: 18px 10px 10px 10px;
     font-weight: bold;
 }
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    padding: 2px 8px;
+    padding: 2px 10px;
     color: #D3D3D3;
 }
 
@@ -27,9 +49,9 @@ QPushButton {
     background-color: #575757;
     color: #D3D3D3;
     border: 1px solid #555555;
-    border-radius: 4px;
-    padding: 4px 12px;
-    min-height: 24px;
+    border-radius: 6px;
+    padding: 6px 14px;
+    min-height: 26px;
 }
 QPushButton:hover {
     background-color: #636363;
@@ -46,7 +68,9 @@ QPushButton#primaryBtn {
     color: #FFFFFF;
     font-weight: bold;
     border: none;
-    padding: 8px 24px;
+    border-radius: 8px;
+    padding: 10px 24px;
+    min-height: 32px;
 }
 QPushButton#primaryBtn:hover {
     background-color: #6BA8E0;
@@ -67,9 +91,9 @@ QLineEdit, QSpinBox {
     background-color: #464646;
     color: #D3D3D3;
     border: 1px solid #555555;
-    border-radius: 4px;
-    padding: 2px 6px;
-    min-height: 22px;
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-height: 24px;
 }
 QLineEdit:focus, QSpinBox:focus {
     border-color: #5C9BD5;
@@ -84,66 +108,74 @@ QComboBox {
     background-color: #575757;
     color: #D3D3D3;
     border: 1px solid #555555;
-    border-radius: 4px;
-    padding: 2px 8px;
-    min-height: 24px;
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-height: 26px;
 }
 QComboBox:hover {
     background-color: #636363;
 }
 QComboBox::drop-down {
     border: none;
-    width: 20px;
+    border-radius: 6px;
+    width: 22px;
 }
 QComboBox QAbstractItemView {
     background-color: #4A4A4A;
     color: #D3D3D3;
     border: 1px solid #555555;
+    border-radius: 6px;
+    padding: 4px;
     selection-background-color: #5C9BD5;
     selection-color: #FFFFFF;
+    outline: none;
 }
 
 /* === Slider === */
 QSlider::groove:horizontal {
     border: none;
-    height: 4px;
+    height: 5px;
     background: #464646;
-    border-radius: 2px;
+    border-radius: 3px;
 }
 QSlider::handle:horizontal {
     background: #5C9BD5;
     border: none;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     margin: -5px 0;
-    border-radius: 7px;
+    border-radius: 8px;
 }
 QSlider::handle:horizontal:hover {
     background: #6BA8E0;
 }
 QSlider::sub-page:horizontal {
     background: #5C9BD5;
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 /* === ProgressBar === */
 QProgressBar {
     background-color: #464646;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     text-align: center;
     color: #D3D3D3;
-    height: 20px;
+    height: 22px;
+    font-size: 11px;
 }
 QProgressBar::chunk {
     background-color: #5C9BD5;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 /* === Splitter === */
 QSplitter::handle {
     background-color: #555555;
     width: 1px;
+}
+QSplitter::handle:hover {
+    background-color: #5C9BD5;
 }
 
 /* === ScrollArea === */
@@ -155,6 +187,7 @@ QScrollBar:vertical {
     background: #3D3D3D;
     width: 8px;
     border: none;
+    border-radius: 4px;
 }
 QScrollBar::handle:vertical {
     background: #575757;
@@ -183,12 +216,13 @@ QLabel#infoLabel {
 /* === RadioButton === */
 QRadioButton {
     color: #D3D3D3;
-    spacing: 6px;
+    spacing: 8px;
+    padding: 2px 0;
 }
 QRadioButton::indicator {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
     border: 2px solid #575757;
     background: #464646;
 }

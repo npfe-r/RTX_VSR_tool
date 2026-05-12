@@ -1,17 +1,51 @@
 import os
 from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout,
-                              QVBoxLayout, QSplitter, QMessageBox)
+                              QVBoxLayout, QSplitter, QMessageBox, QSizeGrip)
 from PyQt6.QtCore import Qt, QTimer, QSettings
-from PyQt6.QtGui import QAction, QDesktopServices
+from PyQt6.QtGui import QAction, QDesktopServices, QActionGroup
 from PyQt6.QtCore import QUrl
 
 from file_bar import FileBar
 from video_panel import VideoPanel
 from param_panel import ParamPanel
 from bottom_bar import BottomBar
+from title_bar import TitleBar
 from worker import WorkerThread
 from utils import get_video_info
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("RTX 视频超分辨率工具")
+        self.setMinimumSize(960, 600)
+        self.resize(1200, 800)
+
+        # Frameless window with native rounded corners (Win 11)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self._enable_rounded_corners()
+
+        self._worker = None
+        self._last_output_path = ""
+
+        self._setup_ui()
+        self._connect_signals()
+        self._load_settings()
+
+    def _enable_rounded_corners(self):
+        try:
+            import ctypes
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33
+            DWMWCP_ROUND = 2
+            hwnd = int(self.winId())
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, DWMWA_WINDOW_CORNER_PREFERENCE,
+                ctypes.byref(ctypes.c_int(DWMWCP_ROUND)),
+                ctypes.sizeof(ctypes.c_int)
+            )
+        except Exception:
+            pass
 
 
 class MainWindow(QMainWindow):
@@ -42,7 +76,11 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # File bar (top)
+        # Custom title bar (replaces Windows native)
+        self.title_bar = TitleBar()
+        main_layout.addWidget(self.title_bar)
+
+        # File bar
         self.file_bar = FileBar()
         main_layout.addWidget(self.file_bar)
 
@@ -60,6 +98,11 @@ class MainWindow(QMainWindow):
         self.bottom_bar = BottomBar()
         main_layout.addWidget(self.bottom_bar)
 
+        # Resize grip for bottom-right corner
+        grip = QSizeGrip(self)
+        grip.resize(16, 16)
+        grip.setStyleSheet("background: transparent;")
+
     def _connect_signals(self):
         self.file_bar.input_changed.connect(self._on_input_changed)
         self.bottom_bar.start_clicked.connect(self._start_processing)
@@ -67,6 +110,7 @@ class MainWindow(QMainWindow):
         self.bottom_bar.stop_clicked.connect(self._stop_processing)
         self.bottom_bar.open_output_clicked.connect(self._open_output_dir)
         self.bottom_bar.preview_clicked.connect(self._preview_output)
+        self.title_bar.about_requested.connect(self._show_about)
 
     def _on_input_changed(self, path: str):
         if not path or not Path(path).exists():
@@ -115,6 +159,7 @@ class MainWindow(QMainWindow):
 
         self._last_output_path = out_path
         params = self.param_panel.get_params()
+        self._save_settings()
 
         self._worker = WorkerThread(input_path, out_path, params)
         self._worker.progress_updated.connect(self.bottom_bar.update_progress)
@@ -234,5 +279,7 @@ class MainWindow(QMainWindow):
             self.restoreState(state)
 
     def closeEvent(self, event):
-        self._save_settings()
+        s = QSettings()
+        s.setValue("window_geometry", self.saveGeometry())
+        s.setValue("window_state", self.saveState())
         super().closeEvent(event)
