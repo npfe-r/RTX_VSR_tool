@@ -10,6 +10,18 @@ from nvvfx import VideoSuperRes
 from nvvfx.effects.video_super_res import QualityLevel
 from utils import calc_output_size
 
+# Map software preset names to NVENC-compatible p1-p7 presets
+NVENC_PRESET_MAP = {
+    "ultrafast": "p1",
+    "superfast": "p2",
+    "veryfast": "p3",
+    "faster": "p3",
+    "fast": "p4",
+    "medium": "p4",
+    "slow": "p5",
+    "slower": "p6",
+    "veryslow": "p7",
+}
 
 quality_map = {
     "BICUBIC (无AI 插值)": QualityLevel.BICUBIC,
@@ -180,12 +192,14 @@ class WorkerThread(QThread):
             if has_audio:
                 cmd += ["-map", "1:a:0"]
             cmd += ["-c:v", enc_codec]
+            preset = self.params.get("preset", "medium")
             if is_nvenc:
+                preset = NVENC_PRESET_MAP.get(preset, "p4")
                 cmd += ["-rc", "vbr", "-b:v", "0",
                         "-cq", str(self.params.get("crf", 18))]
             else:
                 cmd += ["-crf", str(self.params.get("crf", 18))]
-            cmd += ["-preset", self.params.get("preset", "medium")]
+            cmd += ["-preset", preset]
             if has_audio:
                 cmd += ["-c:a", "aac"]
             cmd += ["-loglevel", "error", self.output_path]
