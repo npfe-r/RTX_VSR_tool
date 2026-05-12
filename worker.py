@@ -170,17 +170,22 @@ class WorkerThread(QThread):
             except Exception:
                 pass
 
+            enc_codec = self.params.get("enc_codec", "libx264")
+            is_nvenc = enc_codec.endswith("_nvenc")
+
             cmd = ["ffmpeg", "-y", "-i", tmp_path]
             if has_audio:
                 cmd += ["-i", self.input_path]
             cmd += ["-map", "0:v:0"]
             if has_audio:
                 cmd += ["-map", "1:a:0"]
-            cmd += [
-                "-c:v", self.params.get("enc_codec", "libx264"),
-                "-crf", str(self.params.get("crf", 18)),
-                "-preset", self.params.get("preset", "medium"),
-            ]
+            cmd += ["-c:v", enc_codec]
+            if is_nvenc:
+                cmd += ["-rc", "vbr", "-b:v", "0",
+                        "-cq", str(self.params.get("crf", 18))]
+            else:
+                cmd += ["-crf", str(self.params.get("crf", 18))]
+            cmd += ["-preset", self.params.get("preset", "medium")]
             if has_audio:
                 cmd += ["-c:a", "aac"]
             cmd += ["-loglevel", "error", self.output_path]

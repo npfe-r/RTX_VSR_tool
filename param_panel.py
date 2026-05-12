@@ -108,9 +108,16 @@ class ParamPanel(QWidget):
         self.codec_combo = QComboBox()
         self.codec_combo.addItems([
             "H.264 (libx264)",
+            "H.264 (NVENC)",
             "H.265 (libx265)",
+            "H.265 (NVENC)",
             "AV1 (libaom-av1)",
+            "AV1 (NVENC)",
         ])
+        self.codec_combo.setToolTip(
+            "NVENC 硬件编码速度极快，适合大多数场景；"
+            "软件编码同码率画质略好。AV1 NVENC 仅 RTX 40 系列支持"
+        )
         enc_layout.addRow("视频编码器:", self.codec_combo)
 
         crf_row = QHBoxLayout()
@@ -149,8 +156,11 @@ class ParamPanel(QWidget):
     def get_params(self) -> dict:
         codec_map = {
             "H.264 (libx264)": "libx264",
+            "H.264 (NVENC)": "h264_nvenc",
             "H.265 (libx265)": "libx265",
+            "H.265 (NVENC)": "hevc_nvenc",
             "AV1 (libaom-av1)": "libaom-av1",
+            "AV1 (NVENC)": "av1_nvenc",
         }
         return {
             "output_mode": self.mode_combo.currentText(),
