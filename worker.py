@@ -1,5 +1,6 @@
 import os
 import time
+import shutil
 from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal
 
@@ -76,12 +77,23 @@ class WorkerThread(QThread):
         out_h += out_h % 2
 
         tmp_path = self.output_path.rsplit(".", 1)[0] + "_tmp.mp4"
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        writer = cv2.VideoWriter(tmp_path, fourcc, out_fps, (out_w, out_h))
-        if not writer.isOpened():
-            self.error_occurred.emit("无法创建临时视频文件")
-            cap.release()
-            return
+        tmp_dir = None
+        writer = None
+        fourcc_candidates = ["avc1", "mp4v", "H264"]
+        for codec in fourcc_candidates:
+            try:
+                w = cv2.VideoWriter_fourcc(*codec)
+                wtr = cv2.VideoWriter(tmp_path, w, out_fps, (out_w, out_h))
+                if wtr.isOpened():
+                    writer = wtr
+                    break
+                wtr.release()
+            except Exception:
+                continue
+        if writer is None:
+            # Fallback: save frames as PNG sequence (no resolution limit)
+            tmp_dir = tmp_path.rsplit(".", 1)[0] + "_frames"
+            os.makedirs(tmp_dir, exist_ok=True)
 
         quality = quality_map.get(self.params["quality_label"], QualityLevel.HIGH)
         device_id = self.params.get("device_id", 0)
@@ -136,7 +148,10 @@ class WorkerThread(QThread):
                     out_t = torch.from_dlpack(result.image).clone()
                     out_np = out_t.mul_(255.0).byte().permute(1, 2, 0).cpu().numpy()
                     out_bgr = cv2.cvtColor(out_np, cv2.COLOR_RGB2BGR)
-                    writer.write(out_bgr)
+                    if writer is not None:
+                        writer.write(out_bgr)
+                    else:
+                        cv2.imwrite(os.path.join(tmp_dir, f"f{frame_count:08d}.png"), out_bgr)
 
                     frame_count += 1
                     total_time += t1 - t0
@@ -153,18 +168,28 @@ class WorkerThread(QThread):
         except Exception as e:
             self.error_occurred.emit(str(e))
             cap.release()
-            writer.release()
+            if writer is not None:
+                writer.release()
+            if tmp_dir:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            Path(tmp_path).unlink(missing_ok=True)
             return
 
         cap.release()
-        writer.release()
+        if writer is not None:
+            writer.release()
 
         if self._cancelled:
+            if tmp_dir:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
             Path(tmp_path).unlink(missing_ok=True)
             return
 
         if frame_count == 0:
             self.error_occurred.emit("未能读取到任何帧")
+            if tmp_dir:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            Path(tmp_path).unlink(missing_ok=True)
             return
 
         # ffmpeg final encode
@@ -185,7 +210,11 @@ class WorkerThread(QThread):
             enc_codec = self.params.get("enc_codec", "libx264")
             is_nvenc = enc_codec.endswith("_nvenc")
 
-            cmd = ["ffmpeg", "-y", "-i", tmp_path]
+            if tmp_dir:
+                cmd = ["ffmpeg", "-y", "-framerate", str(out_fps),
+                       "-i", os.path.join(tmp_dir, "f%08d.png")]
+            else:
+                cmd = ["ffmpeg", "-y", "-i", tmp_path]
             if has_audio:
                 cmd += ["-i", self.input_path]
             cmd += ["-map", "0:v:0"]
@@ -207,27 +236,43 @@ class WorkerThread(QThread):
             result = subprocess.run(cmd, timeout=600)
             if result.returncode != 0:
                 self.error_occurred.emit(f"FFmpeg 编码失败 (exit code {result.returncode})")
+                if tmp_dir:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
                 Path(tmp_path).unlink(missing_ok=True)
                 cap.release()
-                writer.release()
+                if writer is not None:
+                    writer.release()
                 return
 
         except subprocess.TimeoutExpired:
             self.error_occurred.emit("FFmpeg 编码超时 (超过600s)")
+            if tmp_dir:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
             Path(tmp_path).unlink(missing_ok=True)
             cap.release()
-            writer.release()
+            if writer is not None:
+                writer.release()
             return
         except FileNotFoundError:
             self.error_occurred.emit("未找到 FFmpeg，请检查系统 PATH")
+            if tmp_dir:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
             Path(tmp_path).unlink(missing_ok=True)
             cap.release()
-            writer.release()
+            if writer is not None:
+                writer.release()
             return
         except Exception:
-            # Fallback: keep the OpenCV tmp file as output
+            if tmp_dir:
+                self.error_occurred.emit("FFmpeg 编码出错")
+                if tmp_dir:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                Path(tmp_path).unlink(missing_ok=True)
+                return
             os.replace(tmp_path, self.output_path)
 
+        if tmp_dir:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
         Path(tmp_path).unlink(missing_ok=True)
         elapsed = time.time() - wall_start
         self.finished.emit(frame_count, elapsed)

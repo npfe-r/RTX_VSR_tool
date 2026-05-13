@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 title RTX-VSR-Tool 依赖安装脚本
 
