@@ -10,7 +10,7 @@ echo.
 echo [1/2] Building Light package ...
 echo       PyQt6+numpy only, system deps required
 echo.
-call python -m PyInstaller --clean build_light.spec
+call .\venv\Scripts\python -m PyInstaller --clean build_light.spec
 if errorlevel 1 (
     echo [ERROR] Light build failed!
     pause
@@ -23,7 +23,7 @@ echo.
 echo [2/2] Building Full package ...
 echo       Bundles torch+nvvfx+cv2+ffmpeg
 echo.
-call python -m PyInstaller --clean build_full.spec
+call .\venv\Scripts\python -m PyInstaller --clean build_full.spec
 if errorlevel 1 (
     echo [ERROR] Full build failed!
     pause

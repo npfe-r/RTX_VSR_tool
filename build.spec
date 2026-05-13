@@ -19,6 +19,7 @@ a = Analysis(
     ],
     datas=[],
     hiddenimports=[
+        "check_deps",
         "numpy",
         "cv2",
         "PyQt6",

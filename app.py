@@ -1,34 +1,46 @@
 import sys
-from pathlib import Path
+import os
 
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QThread, QObject, pyqtSignal
 
 from main_window import MainWindow
 
 
-import os
+class DepChecker(QObject):
+    """Run dependency check in a background thread so the UI never freezes."""
+    done = pyqtSignal(object)
+    failed = pyqtSignal(str)
 
-
-def _check_deps():
-    """Run startup dependency check (skipped in Full build where deps are bundled)."""
-    if os.environ.get("RTX_BUILD") == "full":
-        return True
-    try:
-        from check_deps import check_dependencies, show_dialog_if_missing
-        results = check_dependencies()
-        return show_dialog_if_missing(results)
-    except Exception:
-        return True  # don't block startup on check failure
+    def run(self):
+        if os.environ.get("RTX_BUILD") == "full":
+            self.done.emit(None)
+            return
+        try:
+            from check_deps import check_dependencies
+            results = check_dependencies()
+            self.done.emit(results)
+        except Exception as e:
+            self.failed.emit(str(e))
 
 
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("RTX 视频超分辨率工具")
 
-    _check_deps()
-
     window = MainWindow()
     window.show()
+
+    thread = QThread()
+    checker = DepChecker()
+    checker.moveToThread(thread)
+    thread.started.connect(checker.run)
+    checker.done.connect(thread.quit)
+    checker.done.connect(window._on_dep_check_done)
+    checker.failed.connect(thread.quit)
+    checker.failed.connect(window._on_dep_check_failed)
+    thread.finished.connect(checker.deleteLater)
+    thread.start()
 
     sys.exit(app.exec())
 

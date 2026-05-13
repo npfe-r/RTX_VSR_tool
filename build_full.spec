@@ -6,12 +6,16 @@ from pathlib import Path
 sys.setrecursionlimit(5000)
 
 ROOT = Path(r"H:\Project\RTX_VSR_tool")
-SITE = Path(r"C:\Users\LXY\AppData\Roaming\Python\Python310\site-packages")
 FFMPEG = Path(r"D:\Program Files\ffmpeg\bin")
+
+# Resolve site-packages from the venv (not the system Python) to avoid
+# version mismatches between torch/torchvision/nvvfx.
+_VENV = ROOT / "venv"
+SITE = _VENV / "Lib" / "site-packages"
 
 a = Analysis(
     [str(ROOT / "app.py")],
-    pathex=[str(ROOT)],
+    pathex=[str(ROOT), str(SITE)],
     binaries=[
         (str(FFMPEG / "ffmpeg.exe"), "."),
         (str(FFMPEG / "ffprobe.exe"), "."),

@@ -13,6 +13,7 @@ a = Analysis(
     binaries=[],   # no ffmpeg, no nvvfx — loaded from system
     datas=[],
     hiddenimports=[
+        "check_deps",
         "numpy",
         "PyQt6",
         "PyQt6.QtCore",
