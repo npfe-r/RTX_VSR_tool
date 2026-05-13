@@ -42,6 +42,15 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[str(ROOT / "rthook_full_build.py")],
     excludes=[
+        # Torch unused submodules (~500 MB+)
+        "torch.distributed", "torch.testing", "torch.inductor",
+        "torch.onnx", "torch.ao", "torch.fx",
+        "torch._export", "torch._functorch", "torch.sparse",
+        "torch.jit", "torch._dynamo", "torch._inductor",
+        "torch._higher_order_ops", "torch.export",
+        "torch._subclasses", "torch.distributions", "torch.utils.benchmark",
+        "torch.backends._coreml", "torch.backends._nnapi",
+        # Unused general libs
         "tkinter", "matplotlib", "scipy", "PIL", "pandas",
         "tensorflow", "tensorflow-plugins", "keras", "jax", "jaxlib",
         "triton", "IPython", "jedi", "parso", "yapf_third_party",
@@ -61,7 +70,7 @@ exe = EXE(
     exclude_binaries=True,
     name="RTX-VSR-Tool",
     debug=False, bootloader_ignore_signals=False,
-    strip=False, upx=True, upx_exclude=[],
+    strip=True, upx=True, upx_exclude=[],
     runtime_tmpdir=None, console=False,
     disable_windowed_traceback=False, argv_emulation=False,
     target_arch=None, codesign_identity=None, entitlements_file=None,
@@ -69,6 +78,6 @@ exe = EXE(
 
 coll = COLLECT(
     exe, a.binaries, a.datas,
-    strip=False, upx=True, upx_exclude=[],
+    strip=True, upx=True, upx_exclude=[],
     name="RTX-VSR-Tool-Full",
 )
