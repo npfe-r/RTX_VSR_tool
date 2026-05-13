@@ -2,45 +2,34 @@ import sys
 import os
 
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QThread, QObject, pyqtSignal
 
 from main_window import MainWindow
-
-
-class DepChecker(QObject):
-    """Run dependency check in a background thread so the UI never freezes."""
-    done = pyqtSignal(object)
-    failed = pyqtSignal(str)
-
-    def run(self):
-        if os.environ.get("RTX_BUILD") == "full":
-            self.done.emit(None)
-            return
-        try:
-            from check_deps import check_dependencies
-            results = check_dependencies()
-            self.done.emit(results)
-        except Exception as e:
-            self.failed.emit(str(e))
 
 
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("RTX 视频超分辨率工具")
 
+    # For non-full builds, check dependencies before showing the window.
+    # If any are missing, show the dialog and exit immediately.
+    if os.environ.get("RTX_BUILD") != "full":
+        try:
+            from check_deps import check_dependencies, show_dialog_if_missing
+            if not show_dialog_if_missing(check_dependencies()):
+                sys.exit(1)
+                return
+        except Exception as e:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                None, "依赖检查失败",
+                f"无法完成依赖检查，部分功能可能不可用：\n\n{e}\n\n"
+                "请确认 torch / nvvfx / opencv-python 已正确安装。"
+            )
+            sys.exit(1)
+            return
+
     window = MainWindow()
     window.show()
-
-    thread = QThread()
-    checker = DepChecker()
-    checker.moveToThread(thread)
-    thread.started.connect(checker.run)
-    checker.done.connect(thread.quit)
-    checker.done.connect(window._on_dep_check_done)
-    checker.failed.connect(thread.quit)
-    checker.failed.connect(window._on_dep_check_failed)
-    thread.finished.connect(checker.deleteLater)
-    thread.start()
 
     sys.exit(app.exec())
 

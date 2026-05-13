@@ -11,10 +11,11 @@ a = Analysis(
     [str(ROOT / "app.py")],
     pathex=[str(ROOT)],
     binaries=[],   # no ffmpeg, no nvvfx — loaded from system
-    datas=[],
+    datas=[(str(ROOT / "install_deps.bat"), ".")],
     hiddenimports=[
         "check_deps",
         "numpy",
+        "timeit",   # torch._strobelight.cli_function_profiler imports this during dep check
         "PyQt6",
         "PyQt6.QtCore",
         "PyQt6.QtGui",

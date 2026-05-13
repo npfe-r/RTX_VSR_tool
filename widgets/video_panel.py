@@ -1,4 +1,3 @@
-import numpy as np
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout,
                               QLabel, QFrame, QGridLayout)
 from PyQt6.QtCore import Qt
@@ -47,7 +46,8 @@ class VideoPanel(QWidget):
 
         layout.addWidget(info_frame)
 
-    def set_thumbnail(self, rgb_array: np.ndarray):
+    def set_thumbnail(self, rgb_array):
+        import numpy as np
         h, w, ch = rgb_array.shape
         bytes_per_line = w * ch
         qimg = QImage(rgb_array.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)

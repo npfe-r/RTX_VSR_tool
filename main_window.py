@@ -281,24 +281,6 @@ class MainWindow(QMainWindow):
         if geo is not None:
             self.restoreGeometry(geo)
 
-    # ── Dependency check callback (invoked from app.py worker thread) ──
-    def _on_dep_check_done(self, results):
-        """Called on the main thread after background dep check completes."""
-        if not results:
-            return
-        from check_deps import missing_deps, show_dialog_if_missing
-        if missing_deps(results):
-            show_dialog_if_missing(results, self)
-
-    def _on_dep_check_failed(self, msg: str):
-        """Called on the main thread if the background dep check crashed."""
-        from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.warning(
-            self, "依赖检查失败",
-            f"无法完成依赖检查，部分功能可能不可用：\n\n{msg}\n\n"
-            "请确认 torch / nvvfx / opencv-python 已正确安装。"
-        )
-
     def closeEvent(self, event):
         s = QSettings()
         s.setValue("window_geometry", self.saveGeometry())

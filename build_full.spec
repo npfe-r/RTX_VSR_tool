@@ -57,7 +57,8 @@ a = Analysis(
 pyz = PYZ(a.pure)
 
 exe = EXE(
-    pyz, a.scripts, a.binaries, a.datas, [],
+    pyz, a.scripts,
+    exclude_binaries=True,
     name="RTX-VSR-Tool",
     debug=False, bootloader_ignore_signals=False,
     strip=False, upx=True, upx_exclude=[],
