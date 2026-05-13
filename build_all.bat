@@ -1,48 +1,45 @@
 @echo off
-title RTX-VSR-Tool 打包工具
-chcp 65001 >nul
+title RTX-VSR-Tool Builder
 
-echo ============================================
-echo  RTX-VSR-Tool 一键打包脚本
-echo ============================================
+echo +------------------------------------------+
+echo ^| RTX-VSR-Tool Build Script                ^|
+echo +------------------------------------------+
 echo.
 
-:: ── 轻量包 ──────────────────────────────────────
-echo [1/2] 正在构建 轻量包 (Light) ...
-echo       仅打包 PyQt6+numpy，其余依赖从系统加载
-echo       预计大小: ~200 MB
+:: ---- Light Build ----------------------------
+echo [1/2] Building Light package ...
+echo       PyQt6+numpy only, system deps required
 echo.
 call python -m PyInstaller --clean build_light.spec
 if errorlevel 1 (
-    echo [错误] 轻量包构建失败!
+    echo [ERROR] Light build failed!
     pause
     exit /b 1
 )
-echo [完成] 轻量包: dist\RTX-VSR-Tool-Light\
+echo [DONE] Light package: dist\RTX-VSR-Tool-Light\
 echo.
 
-:: ── 全量包 ──────────────────────────────────────
-echo [2/2] 正在构建 全量包 (Full) ...
-echo       包括 torch+nvvfx+cv2+ffmpeg，开箱即用
-echo       预计大小: ~2.7 GB
+:: ---- Full Build -----------------------------
+echo [2/2] Building Full package ...
+echo       Bundles torch+nvvfx+cv2+ffmpeg
 echo.
 call python -m PyInstaller --clean build_full.spec
 if errorlevel 1 (
-    echo [错误] 全量包构建失败!
+    echo [ERROR] Full build failed!
     pause
     exit /b 1
 )
-echo [完成] 全量包: dist\RTX-VSR-Tool-Full\
+echo [DONE] Full package: dist\RTX-VSR-Tool-Full\
 echo.
 
-echo ============================================
-echo  全部构建完成!
-echo ============================================
+echo +------------------------------------------+
+echo ^| All builds complete!                     ^|
+echo +------------------------------------------+
 echo.
-echo  轻量包: dist\RTX-VSR-Tool-Light\   (~200 MB)
-echo     → 需系统安装: torch, nvvfx, opencv-python, ffmpeg
+echo  Light: dist\RTX-VSR-Tool-Light\   (~200 MB)
+echo    -> Requires: torch, nvvfx, opencv-python, ffmpeg
 echo.
-echo  全量包: dist\RTX-VSR-Tool-Full\    (~2.7 GB)
-echo     → 开箱即用，但需要 NVIDIA GPU + CUDA 驱动
+echo  Full:  dist\RTX-VSR-Tool-Full\    (~2.7 GB)
+echo    -> Ready to use, needs NVIDIA GPU + CUDA
 echo.
 pause

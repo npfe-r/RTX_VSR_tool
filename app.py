@@ -6,8 +6,13 @@ from PyQt6.QtWidgets import QApplication
 from main_window import MainWindow
 
 
+import os
+
+
 def _check_deps():
-    """Run startup dependency check; return True if all OK."""
+    """Run startup dependency check (skipped in Full build where deps are bundled)."""
+    if os.environ.get("RTX_BUILD") == "full":
+        return True
     try:
         from check_deps import check_dependencies, show_dialog_if_missing
         results = check_dependencies()

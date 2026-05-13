@@ -36,7 +36,7 @@ a = Analysis(
     ],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[str(ROOT / "rthook_full_build.py")],
     excludes=[
         "tkinter", "matplotlib", "scipy", "PIL", "pandas",
         "tensorflow", "tensorflow-plugins", "keras", "jax", "jaxlib",
