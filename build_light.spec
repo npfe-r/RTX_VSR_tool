@@ -11,7 +11,10 @@ a = Analysis(
     [str(ROOT / "app.py")],
     pathex=[str(ROOT)],
     binaries=[],   # no ffmpeg, no nvvfx — loaded from system
-    datas=[(str(ROOT / "install_deps.bat"), ".")],
+    datas=[
+        (str(ROOT / "install_deps.bat"), "."),
+        (str(ROOT / "setup.bat"), "."),
+    ],
     hiddenimports=[
         "check_deps",
         "numpy",
