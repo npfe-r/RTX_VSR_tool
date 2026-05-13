@@ -43,7 +43,11 @@
 - 解压后将 `bin` 目录添加到系统 PATH 环境变量
 - 验证安装：在终端运行 `ffmpeg -version`
 
-### 2. 配置 Python 虚拟环境
+### 2. 一键部署环境
+
+双击 `setup.bat`，自动完成虚拟环境创建和依赖安装。
+
+或手动执行：
 
 ```bash
 cd H:\Project\RTX_VSR_tool
@@ -192,6 +196,7 @@ RTX_VSR_tool/
 ├── utils.py                # 工具函数（GPU 检测、视频信息、尺寸计算）
 ├── check_deps.py           # 启动依赖检查
 ├── requirements.txt        # Python 依赖
+├── setup.bat               # 一键部署脚本（创建 venv + 安装依赖）
 ├── start.bat               # Windows 启动脚本
 ├── build_all.bat           # 一键打包脚本
 ├── build_light.spec        # PyInstaller 轻量包配置
