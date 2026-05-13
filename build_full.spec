@@ -42,13 +42,16 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[str(ROOT / "rthook_full_build.py")],
     excludes=[
-        # Torch unused submodules (~500 MB+)
-        "torch.distributed", "torch.testing", "torch.inductor",
-        "torch.onnx", "torch.ao", "torch.fx",
-        "torch._export", "torch._functorch",
-        "torch.jit", "torch._dynamo", "torch._inductor",
-        "torch._higher_order_ops", "torch.export",
-        "torch._subclasses", "torch.distributions", "torch.utils.benchmark",
+        # Torch submodules — only exclude ones that are lazy-loaded or
+        # unreferenced. torch core unconditionally imports the rest.
+        # NOTE: torch.testing is unconditionally imported by
+        # torch.autograd.gradcheck (via nn.modules.batchnorm).
+        # torch.onnx, torch._dynamo, torch._inductor,
+        # torch.utils.benchmark are lazy-loaded and safe to exclude.
+        "torch.onnx",           # ONNX export, ~2 MB
+        "torch._dynamo",        # torch.compile frontend, ~7 MB
+        "torch._inductor",      # torch.compile backend, ~16 MB
+        "torch.utils.benchmark",
         "torch.backends._coreml", "torch.backends._nnapi",
         # torchvision — not imported by app or nvvfx, ~23 MB saved
         "torchvision",
