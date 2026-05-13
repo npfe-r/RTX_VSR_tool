@@ -87,6 +87,10 @@ BUILD_MODE_FILE = None  # set by app.py at startup
 
 
 _INSTALL_GUIDE = """
+💡 推荐：双击运行本程序目录下的 install_deps.bat 可一键安装以上所有依赖。
+
+或手动安装：
+
 • torch / torchvision:
     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 
