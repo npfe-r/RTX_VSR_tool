@@ -1,17 +1,16 @@
 import time
-import torch
-import numpy as np
-import cv2
 from pathlib import Path
 
 
 def auto_gpu_name() -> str:
+    import torch
     if torch.cuda.is_available():
         return torch.cuda.get_device_name(0)
     return "未检测到 GPU"
 
 
 def list_gpu_devices() -> list[dict]:
+    import torch
     devices = []
     if torch.cuda.is_available():
         for i in range(torch.cuda.device_count()):
@@ -41,6 +40,7 @@ def fmt_time(seconds: float) -> str:
 
 
 def get_video_info(path: str) -> dict | None:
+    import cv2
     cap = cv2.VideoCapture(path)
     if not cap.isOpened():
         return None

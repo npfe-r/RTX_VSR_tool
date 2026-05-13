@@ -23,8 +23,8 @@ Thumbs.db
 input/
 output/
 
-# Streamlit
-.streamlit/
+# Runtime files
+error.log
 
 # Claude
 .claude/

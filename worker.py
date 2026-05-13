@@ -1,13 +1,8 @@
 import os
 import time
-import torch
-import cv2
-import numpy as np
 from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from nvvfx import VideoSuperRes
-from nvvfx.effects.video_super_res import QualityLevel
 from utils import calc_output_size
 
 # Map software preset names to NVENC-compatible p1-p7 presets
@@ -21,21 +16,6 @@ NVENC_PRESET_MAP = {
     "slow": "p5",
     "slower": "p6",
     "veryslow": "p7",
-}
-
-quality_map = {
-    "BICUBIC (无AI 插值)": QualityLevel.BICUBIC,
-    "LOW (AI 速度优先)": QualityLevel.LOW,
-    "MEDIUM (AI 均衡)": QualityLevel.MEDIUM,
-    "HIGH (AI 质量优先)": QualityLevel.HIGH,
-    "ULTRA (AI 极致细节)": QualityLevel.ULTRA,
-    "DENOISE_LOW (轻度降噪)": QualityLevel.DENOISE_LOW,
-    "DENOISE_MEDIUM (中度降噪)": QualityLevel.DENOISE_MEDIUM,
-    "DENOISE_HIGH (强力降噪)": QualityLevel.DENOISE_HIGH,
-    "DEBLUR_LOW (轻度去模糊)": QualityLevel.DEBLUR_LOW,
-    "DEBLUR_MEDIUM (中度去模糊)": QualityLevel.DEBLUR_MEDIUM,
-    "DEBLUR_HIGH (强力去模糊)": QualityLevel.DEBLUR_HIGH,
-    "HIGHBITRATE_HIGH (高码率源)": QualityLevel.HIGHBITRATE_HIGH,
 }
 
 
@@ -55,6 +35,26 @@ class WorkerThread(QThread):
         self._cancelled = False
 
     def run(self):
+        import cv2
+        import torch
+        from nvvfx import VideoSuperRes
+        from nvvfx.effects.video_super_res import QualityLevel
+
+        quality_map = {
+            "BICUBIC (无AI 插值)": QualityLevel.BICUBIC,
+            "LOW (AI 速度优先)": QualityLevel.LOW,
+            "MEDIUM (AI 均衡)": QualityLevel.MEDIUM,
+            "HIGH (AI 质量优先)": QualityLevel.HIGH,
+            "ULTRA (AI 极致细节)": QualityLevel.ULTRA,
+            "DENOISE_LOW (轻度降噪)": QualityLevel.DENOISE_LOW,
+            "DENOISE_MEDIUM (中度降噪)": QualityLevel.DENOISE_MEDIUM,
+            "DENOISE_HIGH (强力降噪)": QualityLevel.DENOISE_HIGH,
+            "DEBLUR_LOW (轻度去模糊)": QualityLevel.DEBLUR_LOW,
+            "DEBLUR_MEDIUM (中度去模糊)": QualityLevel.DEBLUR_MEDIUM,
+            "DEBLUR_HIGH (强力去模糊)": QualityLevel.DEBLUR_HIGH,
+            "HIGHBITRATE_HIGH (高码率源)": QualityLevel.HIGHBITRATE_HIGH,
+        }
+
         cap = cv2.VideoCapture(self.input_path)
         if not cap.isOpened():
             self.error_occurred.emit("无法打开视频文件")

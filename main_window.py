@@ -1,18 +1,14 @@
-import os
 from pathlib import Path
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout,
-                              QVBoxLayout, QSplitter, QMessageBox, QSizeGrip)
-from PyQt6.QtCore import Qt, QTimer, QSettings
-from PyQt6.QtGui import QAction, QDesktopServices, QActionGroup
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                              QProgressBar, QLabel,
+                              QMessageBox, QFrame, QStatusBar)
+from PyQt6.QtCore import Qt, QSettings
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtCore import QUrl
 
-from file_bar import FileBar
-from video_panel import VideoPanel
-from param_panel import ParamPanel
-from bottom_bar import BottomBar
-from title_bar import TitleBar
+from widgets import FileBar, VideoPanel, ParamPanel
 from worker import WorkerThread
-from utils import get_video_info
+from utils import get_video_info, fmt_time
 
 
 class MainWindow(QMainWindow):
@@ -20,11 +16,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("RTX 视频超分辨率工具")
         self.setMinimumSize(960, 600)
-        self.resize(1200, 800)
-
-        # Frameless window with native rounded corners (Win 11)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self._enable_rounded_corners()
+        self.resize(960, 600)
 
         self._worker = None
         self._last_output_path = ""
@@ -33,95 +25,94 @@ class MainWindow(QMainWindow):
         self._connect_signals()
         self._load_settings()
 
-    def _enable_rounded_corners(self):
-        try:
-            import ctypes
-            DWMWA_WINDOW_CORNER_PREFERENCE = 33
-            DWMWCP_ROUND = 2
-            hwnd = int(self.winId())
-            ctypes.windll.dwmapi.DwmSetWindowAttribute(
-                hwnd, DWMWA_WINDOW_CORNER_PREFERENCE,
-                ctypes.byref(ctypes.c_int(DWMWCP_ROUND)),
-                ctypes.sizeof(ctypes.c_int)
-            )
-        except Exception:
-            pass
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("RTX 视频超分辨率工具")
-        self.setMinimumSize(960, 600)
-        self.resize(1200, 800)
-
-        self._worker = None
-        self._last_output_path = ""
-
-        self._setup_menu()
-        self._setup_ui()
-        self._connect_signals()
-        self._load_settings()
-
-    def _setup_menu(self):
-        menubar = self.menuBar()
-        about_action = QAction("关于", self)
-        about_action.triggered.connect(self._show_about)
-        menubar.addAction(about_action)
-
+    # ── UI Setup ──────────────────────────────────────────────────
     def _setup_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
-        main_layout = QVBoxLayout(central)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
 
-        # Custom title bar (replaces Windows native)
-        self.title_bar = TitleBar()
-        main_layout.addWidget(self.title_bar)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         # File bar
         self.file_bar = FileBar()
-        main_layout.addWidget(self.file_bar)
+        layout.addWidget(self.file_bar)
 
-        # Splitter: video panel | param panel
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        # Separator
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(sep)
+
+        # Middle area: video panel | param panel (equal width)
+        middle_layout = QHBoxLayout()
+        middle_layout.setSpacing(0)
         self.video_panel = VideoPanel()
         self.param_panel = ParamPanel()
-        splitter.addWidget(self.video_panel)
-        splitter.addWidget(self.param_panel)
-        splitter.setStretchFactor(0, 55)
-        splitter.setStretchFactor(1, 45)
-        main_layout.addWidget(splitter, 1)
+        middle_layout.addWidget(self.video_panel, 1)
+        # Vertical separator
+        vsep = QFrame()
+        vsep.setFrameShape(QFrame.Shape.VLine)
+        vsep.setFrameShadow(QFrame.Shadow.Sunken)
+        middle_layout.addWidget(vsep)
+        middle_layout.addWidget(self.param_panel, 1)
+        layout.addLayout(middle_layout, 1)
 
-        # Bottom bar
-        self.bottom_bar = BottomBar()
-        main_layout.addWidget(self.bottom_bar)
+        # Separator
+        sep_pb = QFrame()
+        sep_pb.setFrameShape(QFrame.Shape.HLine)
+        sep_pb.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(sep_pb)
 
-        # Resize grip for bottom-right corner
-        grip = QSizeGrip(self)
-        grip.resize(16, 16)
-        grip.setStyleSheet("background: transparent;")
+        # Status label above progress bar (centered)
+        self.status_label = QLabel("就绪 — 选择视频文件后点击开始处理")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status_label)
 
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setFixedHeight(20)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+        layout.addWidget(self.progress_bar)
+
+        # Separator
+        sep3 = QFrame()
+        sep3.setFrameShape(QFrame.Shape.HLine)
+        sep3.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(sep3)
+
+        # Status bar — static project info
+        status = QStatusBar()
+        status.setSizeGripEnabled(False)
+        status_label = QLabel("RTX 视频超分辨率工具  v1.0.0  |  PyTorch · NVIDIA VFX SDK")
+        status.addWidget(status_label)
+        self.setStatusBar(status)
+
+    # ── Signal wiring ────────────────────────────────────────────
     def _connect_signals(self):
+        # Processing signals
         self.file_bar.input_changed.connect(self._on_input_changed)
-        self.bottom_bar.start_clicked.connect(self._start_processing)
-        self.bottom_bar.pause_clicked.connect(self._toggle_pause)
-        self.bottom_bar.stop_clicked.connect(self._stop_processing)
-        self.bottom_bar.open_output_clicked.connect(self._open_output_dir)
-        self.bottom_bar.preview_clicked.connect(self._preview_output)
-        self.title_bar.about_requested.connect(self._show_about)
 
+        self.param_panel.start_clicked.connect(self._start_processing)
+        self.param_panel.pause_clicked.connect(self._toggle_pause)
+        self.param_panel.stop_clicked.connect(self._stop_processing)
+
+    # ── Processing ────────────────────────────────────────────────
     def _on_input_changed(self, path: str):
         if not path or not Path(path).exists():
             self.video_panel.clear_info()
-            self.bottom_bar.show_ready()
-            self.bottom_bar.btn_start.setEnabled(False)
+            self.param_panel.show_controls_idle()
+            self.progress_bar.setValue(0)
+            self.status_label.setText("就绪 — 选择视频文件后点击开始处理")
             return
 
         info = get_video_info(path)
         if info is None:
-            self.bottom_bar.show_error("无法读取视频文件")
+            self.progress_bar.setValue(0)
+            self.status_label.setText("错误: 无法读取视频文件")
+            self.status_label.setStyleSheet("color: red;")
             return
 
         filename = Path(path).name
@@ -129,11 +120,13 @@ class MainWindow(QMainWindow):
         if info["thumbnail"] is not None:
             self.video_panel.set_thumbnail(info["thumbnail"])
 
-        # Auto-set output dir if empty
         if not self.file_bar.get_output_path():
             self.file_bar.set_output_path(str(Path(path).parent))
 
-        self.bottom_bar.show_ready()
+        self.param_panel.show_controls_ready()
+        self.progress_bar.setValue(0)
+        self.status_label.setText(f"已选择: {filename}  ({info['width']}×{info['height']}, {info['fps']:.1f} FPS)")
+        self.status_label.setStyleSheet("")
 
     def _start_processing(self):
         input_path = self.file_bar.get_input_path()
@@ -145,7 +138,8 @@ class MainWindow(QMainWindow):
             output_dir = str(Path(input_path).parent)
 
         in_name = Path(input_path).stem
-        container = self.param_panel.get_params()["container_fmt"]
+        params = self.param_panel.get_params()
+        container = params["container_fmt"]
         out_path = str(Path(output_dir) / f"{in_name}_enhanced.{container}")
 
         if Path(out_path).exists():
@@ -158,24 +152,35 @@ class MainWindow(QMainWindow):
                 return
 
         self._last_output_path = out_path
-        params = self.param_panel.get_params()
         self._save_settings()
 
         self._worker = WorkerThread(input_path, out_path, params)
-        self._worker.progress_updated.connect(self.bottom_bar.update_progress)
+        self._worker.progress_updated.connect(self._on_progress)
         self._worker.status_message.connect(self._on_status_message)
         self._worker.finished.connect(self._on_processing_finished)
         self._worker.error_occurred.connect(self._on_processing_error)
 
-        self.bottom_bar.show_processing()
-        self.param_panel.setEnabled(False)
+        self.param_panel.show_controls_processing()
+        self.progress_bar.setValue(0)
+        self.status_label.setText("正在预热 CUDA ...")
+        self.status_label.setStyleSheet("")
+        self.param_panel.set_settings_enabled(False)
         self.file_bar.btn_input.setEnabled(False)
         self.file_bar.btn_output.setEnabled(False)
 
         self._worker.start()
 
+    def _on_progress(self, frame, total, fps, avg_ms, gpu_mem):
+        pct = int(frame / total * 100) if total > 0 else 0
+        self.progress_bar.setValue(pct)
+        eta = fmt_time((total - frame) / max(fps, 0.01))
+        text = f"{frame}/{total}  {pct}%  |  {fps:.1f} FPS  |  {avg_ms:.0f} ms/帧  |  剩余 {eta}"
+        if gpu_mem > 0:
+            text += f"  |  显存 {gpu_mem:.1f} GB"
+        self.status_label.setText(text)
+
     def _on_status_message(self, msg: str):
-        self.bottom_bar.status_label.setText(msg)
+        self.status_label.setText(msg)
 
     def _toggle_pause(self):
         if self._worker:
@@ -198,19 +203,32 @@ class MainWindow(QMainWindow):
             self._reset_after_stop()
 
     def _on_processing_finished(self, total_frames: int, elapsed: float):
-        self.bottom_bar.show_finished(total_frames, elapsed, self._last_output_path)
+        self.param_panel.show_controls_finished()
+        self.progress_bar.setValue(100)
+        avg_fps = total_frames / max(elapsed, 0.01)
+        self.status_label.setText(
+            f"完成! {total_frames} 帧 | 耗时 {fmt_time(elapsed)}"
+            f" | 平均 {elapsed / total_frames * 1000:.0f} ms/帧 ({avg_fps:.1f} FPS)"
+        )
+        self.status_label.setStyleSheet("")
         self._reset_controls_enabled()
 
     def _on_processing_error(self, msg: str):
-        self.bottom_bar.show_error(msg)
+        self.param_panel.show_controls_ready()
+        self.progress_bar.setValue(0)
+        self.status_label.setText(f"错误: {msg}")
+        self.status_label.setStyleSheet("color: red;")
         self._reset_controls_enabled()
 
     def _reset_after_stop(self):
-        self.bottom_bar.show_ready()
+        self.param_panel.show_controls_ready()
+        self.progress_bar.setValue(0)
+        self.status_label.setText("就绪")
+        self.status_label.setStyleSheet("")
         self._reset_controls_enabled()
 
     def _reset_controls_enabled(self):
-        self.param_panel.setEnabled(True)
+        self.param_panel.set_settings_enabled(True)
         self.file_bar.btn_input.setEnabled(True)
         self.file_bar.btn_output.setEnabled(True)
         self._worker = None
@@ -232,17 +250,7 @@ class MainWindow(QMainWindow):
                 f"输出文件较大 ({fsize / 1024 / 1024:.0f} MB)，请在资源管理器中播放。"
             )
 
-    def _show_about(self):
-        QMessageBox.about(
-            self, "关于",
-            "RTX 视频超分辨率工具\n\n"
-            "基于 NVIDIA VFX SDK 的 AI 视频增强工具\n"
-            "支持超分辨率放大、降噪、去模糊\n\n"
-            "技术栈: PyQt6 · PyTorch · NVIDIA VFX SDK 1.2.0"
-        )
-
-    # ---------- Settings persistence ----------
-
+    # ── Settings persistence ─────────────────────────────────────
     def _save_settings(self):
         s = QSettings()
         params = self.param_panel.get_params()
@@ -252,7 +260,6 @@ class MainWindow(QMainWindow):
             s.setValue(key, params[key])
         s.setValue("output_dir", self.file_bar.get_output_path())
         s.setValue("window_geometry", self.saveGeometry())
-        s.setValue("window_state", self.saveState())
 
     def _load_settings(self):
         s = QSettings()
@@ -262,7 +269,6 @@ class MainWindow(QMainWindow):
                      "crf", "preset"):
             val = s.value(key)
             if val is not None:
-                # QSettings returns int for ints, str for strs automatically
                 params[key] = val
         if params:
             self.param_panel.set_params(params)
@@ -274,12 +280,8 @@ class MainWindow(QMainWindow):
         geo = s.value("window_geometry")
         if geo is not None:
             self.restoreGeometry(geo)
-        state = s.value("window_state")
-        if state is not None:
-            self.restoreState(state)
 
     def closeEvent(self, event):
         s = QSettings()
         s.setValue("window_geometry", self.saveGeometry())
-        s.setValue("window_state", self.saveState())
         super().closeEvent(event)
