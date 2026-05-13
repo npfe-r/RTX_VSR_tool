@@ -18,6 +18,12 @@ if errorlevel 1 (
 )
 echo [DONE] Light package: dist\RTX-VSR-Tool-Light\
 echo.
+echo        Copying dependency scripts to root of light package ...
+copy /y "install_deps.bat" "dist\RTX-VSR-Tool-Light\" >nul
+echo.
+echo        Files in dist\RTX-VSR-Tool-Light\:
+dir /b "dist\RTX-VSR-Tool-Light\*.bat" 2>nul
+echo.
 
 :: ---- Full Build -----------------------------
 echo [2/2] Building Full package ...
